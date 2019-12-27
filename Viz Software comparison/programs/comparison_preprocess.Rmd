@@ -1,0 +1,84 @@
+---
+title: "software_comp_preprocess"
+author: "Luis Daniel Chavarría"
+date: "27/12/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data viz software comparison pre processing
+
+The purpose of this script is to prepare the data from the data analytics diplomat in order to create a useful standardized visualization.
+
+```{r}
+library(plyr)
+library(tidyverse)
+library(readxl)
+
+
+raw_data <- read_excel("../../database/Datos.xlsx")
+
+colnames(raw_data) <- c("atencion", "id", "nombre", "fechanac", "edad",
+                     "genero", "tel", "dir", "grupob", "etnia",
+                     "niveledu", "cronico", "segcronico", "eps",
+                     "fechaing", "horaing", "diaseming", "anoing", "mesing", "diaing","urg", "tipurg", 
+                     "espurg", "dxurg","inter", "espinter", "codxpri", 
+                     "esturg", "estb1","estb3", "estuce", "estuci", "estotal",
+                     "cirugia","dxpreq", "ordurg", "proc","pisodes", 
+                     "esp","tiempoq", "quirofano")
+
+glimpse(raw_data)
+```
+
+# Let's use the diplomate's basic data cleaning to make things faster
+
+```{r}
+
+clean_diplomate <- raw_data %>% 
+  mutate(atencion = as.character(atencion),
+         id = as.character(id),
+         nombre = as.character(nombre),
+         edad = as.numeric(edad),
+         genero = as_factor(genero),
+         cronico = as_factor(cronico),
+         segcronico = as_factor(segcronico),
+         eps = as_factor(eps),
+         urg = as_factor(urg),
+         tipurg = as_factor(tipurg),
+         inter = as_factor(inter),
+         ordurg = as_factor(ordurg),
+         cirugia = as_factor(cirugia),
+         proc = as_factor(proc),
+         pisodes = as_factor(pisodes),
+         esp = as_factor(esp)
+         ) %>% 
+  filter(edad < 110)
+
+levels(clean_diplomate$cronico) <- c("No", NA, "Sí")
+clean_diplomate$segcronico <- revalue(clean_diplomate$segcronico, c("SD" = NA))
+clean_diplomate$tipurg <- revalue(clean_diplomate$tipurg, 
+                        c("N/A"="No aplica"))
+clean_diplomate$ordurg <- revalue(clean_diplomate$ordurg, c("ELECTIVO"="Electivo", 
+                                        "N/A"="No aplica",
+                                        "URGENTE"="Urgente"))
+clean_diplomate$proc <- revalue(clean_diplomate$proc, c("N/A"="No aplica"))
+clean_diplomate$pisodes <- revalue(clean_diplomate$pisodes, c("N/A"="No aplica"))
+
+clean_diplomate %>% 
+  summary()
+glimpse(clean_diplomate)
+```
+
+# Standard plot to replicate in each software
+
+```{r}
+clean_diplomate %>% 
+  ggplot(aes(x = edad, fill = genero)) +
+  geom_histogram(bins = 20, color = "white")
+```
+
