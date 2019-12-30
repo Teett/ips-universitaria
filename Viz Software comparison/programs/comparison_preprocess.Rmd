@@ -82,7 +82,7 @@ glimpse(clean_diplomate)
 segcronico_pareto <- clean_diplomate %>% 
   count(segcronico, sort = T) %>% 
   mutate(cumulative = cumsum(n),
-         perc = (cumulative/sum(n))*100) %>% 
+         perc = (cumulative/sum(n))) %>% 
   na.omit()
 
 # segcronico_pareto %>%
@@ -98,13 +98,16 @@ scale_right <- tail(segcronico_pareto$perc, n=1)/tail(segcronico_pareto$cumulati
 segcronico_pareto %>%
   ggplot(aes(x = reorder(segcronico, -n))) +
   geom_bar(aes(y = segcronico_pareto$n), stat = "identity", fill = "deepskyblue4") +
-  geom_point(aes(y = cumulative, group = 1)) +
-  geom_path(aes(y = cumulative, group = 1)) +
+  geom_point(aes(y = cumulative, group = 1), size = 2) +
+  geom_path(aes(y = cumulative, group = 1), size = 0.9) +
   geom_hline(yintercept = 72116, color = "red") +
-  scale_y_continuous(sec.axis = sec_axis(~.*scale_right, name = "Cumulative (%)")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*scale_right/100, name = "Porcentaje acumulado (%)", labels = scales::percent_format())) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.6)) +
+  theme(axis.text.x = element_text(angle = 75, vjust = 0.6)) +
   labs(title = "Pareto de Segmentos crónicos", subtitle = "Desarrollo Organizacional", x = 'Segmentos crónicos', y = "Pacientes")
+
+ggsave("../visualization/pareto_r.png", width = 30, height = 18, units = "cm")
+
 ```
 
 
