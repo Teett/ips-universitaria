@@ -106,8 +106,6 @@ segcronico_pareto %>%
   theme(axis.text.x = element_text(angle = 75, vjust = 0.6)) +
   labs(title = "Pareto de Segmentos crónicos", subtitle = "Desarrollo Organizacional", x = 'Segmentos crónicos', y = "Pacientes")
 
-ggsave("../visualization/pareto_r.png", width = 30, height = 18, units = "cm")
+# ggsave("../visualization/pareto_r.png", width = 30, height = 18, units = "cm")
 
 ```
-
-
