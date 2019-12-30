@@ -19,6 +19,7 @@ The purpose of this script is to prepare the data from the data analytics diplom
 library(plyr)
 library(tidyverse)
 library(readxl)
+library(plotly)
 
 
 raw_data <- read_excel("../../database/Datos.xlsx")
@@ -72,13 +73,38 @@ clean_diplomate$pisodes <- revalue(clean_diplomate$pisodes, c("N/A"="No aplica")
 clean_diplomate %>% 
   summary()
 glimpse(clean_diplomate)
+
+# clean_diplomate %>% 
+#   write_excel_csv2("../../database/clean_diplomate.csv")
+```
+
+```{r}
+segcronico_pareto <- clean_diplomate %>% 
+  count(segcronico, sort = T) %>% 
+  mutate(cumulative = cumsum(n),
+         perc = (cumulative/sum(n))*100) %>% 
+  na.omit()
+
+# segcronico_pareto %>%
+#   write_excel_csv2("../../database/segcronico_pareto.csv")
 ```
 
 # Standard plot to replicate in each software
 
+
 ```{r}
-clean_diplomate %>% 
-  ggplot(aes(x = edad, fill = genero)) +
-  geom_histogram(bins = 20, color = "white")
+scale_right <- tail(segcronico_pareto$perc, n=1)/tail(segcronico_pareto$cumulative, n=1)
+
+segcronico_pareto %>%
+  ggplot(aes(x = reorder(segcronico, -n))) +
+  geom_bar(aes(y = segcronico_pareto$n), stat = "identity", fill = "deepskyblue4") +
+  geom_point(aes(y = cumulative, group = 1)) +
+  geom_path(aes(y = cumulative, group = 1)) +
+  geom_hline(yintercept = 72116, color = "red") +
+  scale_y_continuous(sec.axis = sec_axis(~.*scale_right, name = "Cumulative (%)")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.6)) +
+  labs(title = "Pareto de Segmentos crónicos", subtitle = "Desarrollo Organizacional", x = 'Segmentos crónicos', y = "Pacientes")
 ```
+
 
