@@ -1,0 +1,84 @@
+---
+title: "Creación tablero de cirugía"
+author: "Desarrollo Organizacional"
+date: "13/1/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+- Origen de la información: 
+
+La información proviene de GHIPS y es suministrada por Diana Castrillón en el área de gestión de la información. Teléfono: 3122783824 - Correo: diana.castrillons@ipsuniversitaria.com.co
+
+Se incluye la base de datos de las cirugías realizadas en la IPS Universitaria sede León XIII, a la cual se le realiza una serie de transformaciones manera tal que los datos sean lo más compactos, uniformes, claros y especificos posibles, evitando así los sesgos y ruidos dentro de los análisis.
+
+- Objetivo:
+
+El propósito de este aplicativo es automatizar el proceso de transformación de datos necesario para los análisis descriptivos del área de cirugía. Este tablero se pretende presentar de manera continua a la dirección de salud y a su vez a los especialistas del área de cirugía.
+
+
+# Librerías
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Lectura de datos
+
+```{r}
+raw_cirugia <- read_excel("../database/Cirugias Realizadas 2019 (5).xlsx", 
+    sheet = "BD", col_types = c("numeric", 
+        "text", "text", "numeric", "date", 
+        "numeric", "numeric", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "numeric", "numeric", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "numeric", "text", "text", 
+        "text", "text", "text", "text", "numeric", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "numeric", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "text", "text", "text", "text", 
+        "text", "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "text", "text", "text", 
+        "numeric", "text", "text", "text", 
+        "numeric", "text", "numeric", "numeric", 
+        "text", "text", "text", "numeric", 
+        "text", "numeric", "numeric", "numeric", 
+        "numeric", "text", "numeric", "numeric", 
+        "numeric"))
+
+
+glimpse(raw_cirugia)
+```
+
+# Limpieza de datos
+
+A continuación se seleccionan las variables de interés. Es importante considerar que la consistencia de los nombres es vital para garantizar la reproducibilidad de la selección de variables.
+
+```{r}
+raw_cirugia %>% 
+  select(ATENCION, `TIPO IDENTIFICACION`, CEDULA,  EDAD, GENERO, `CODIGO \r\nHABILITACION`, DESCRIPCION, 
+         MES, FECHA, `Hora Cirugía`, `FECHA ORDEN`, `CIE 10 DIAGNOSTICO PREQUIRUGICO`, `DESCRIPCION PREQUIRURGICO`,
+         `COD DIAGNOSTICO POSTQUIRURGICO`, `DIAGNOSTICO POSTQUIRURGICO`, `CODIGO EPS`,`EPS VALIDADA`,`COD ERP`, 
+         38:50, ESPECIALIDAD, CIRUJANO, ANESTESIOLOGO, INSTRUMENTADOR, `TIPO DE HERIDA`, ASA, `TIPO DE ANESTESIA`:QUIROFANO,
+         COMPLICACIONES, `COMPLICACIONES DESCRIPCION`, `DIA DE LA SEMANA...95`, `TIEMPO QUIRÚRGICO`) %>%
+  filter(is.na(`Hora Cirugía`))
+  
+  
+  
+  # mutate(test = str_detect(FECHA, "(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})")) 
+
+```
+
+En el mes de octubre la columna hora de cirugía se guardó con un formato diferente a las demás fechas. Se debe limpiar correctamente.
