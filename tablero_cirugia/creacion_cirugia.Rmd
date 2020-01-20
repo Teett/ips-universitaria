@@ -27,39 +27,32 @@ El propósito de este aplicativo es automatizar el proceso de transformación de
 ```{r}
 library(tidyverse)
 library(readxl)
+library(lubridate)
 ```
 
 # Lectura de datos
 
-```{r}
-raw_cirugia <- read_excel("../database/Cirugias Realizadas 2019 (5).xlsx", 
-    sheet = "BD", col_types = c("numeric", 
-        "text", "text", "numeric", "date", 
-        "numeric", "numeric", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "numeric", "numeric", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "numeric", "text", "text", 
-        "text", "text", "text", "text", "numeric", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "numeric", "text", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "text", "text", "text", "text", 
-        "text", "numeric", "numeric", "numeric", 
-        "numeric", "numeric", "numeric", 
-        "numeric", "text", "text", "text", 
-        "numeric", "text", "text", "text", 
-        "numeric", "text", "numeric", "numeric", 
-        "text", "text", "text", "numeric", 
-        "text", "numeric", "numeric", "numeric", 
-        "numeric", "text", "numeric", "numeric", 
-        "numeric"))
+Se ha omitido la lectura directa desde Excel con el objetivo de disminuir errores asociados a la manipulación incorrecta con el programa que no serán vistos posteriormente. 
 
+```{r}
+raw_cirugia <- read_delim("../database/cirugias_realizadas_2019.csv", 
+    delim = ";", 
+    col_types = cols(`Hora Cirugía` = col_time(format = "%H:%M"),
+                     CEDULA = col_character(),
+                     "Tipo procedimiento" = col_factor(),
+                     `Horas\nOrden - Cx` = col_time(format = ("%H:%M:%S %p")),
+                     `CODIGO \r\nHABILITACION` = col_double(),
+                     COMPLICACIONES = col_character(),
+                     `FECHA RECUPERACION CX` = col_character(), # Formato 2019-01-24 15:20:54 y 1/10/2019 8:51
+                     `FECHA\nAUDITAORDEN` = col_character(), # Formato 2019-01-24 15:20:54 y 1/10/2019 8:51
+                     `FECHA/HORA\nGUARDADO` = col_character(), # Formato 2019-01-24 15:20:54 y 1/10/2019 8:51
+                     Oportunidad = col_character()
+                     ), 
+    locale = locale(date_names = "es", encoding = "ISO-8859-1")
+    )
 
 glimpse(raw_cirugia)
+
 ```
 
 # Limpieza de datos
@@ -67,18 +60,14 @@ glimpse(raw_cirugia)
 A continuación se seleccionan las variables de interés. Es importante considerar que la consistencia de los nombres es vital para garantizar la reproducibilidad de la selección de variables.
 
 ```{r}
+which(colnames(raw_cirugia) == "Hora Cirugía")
+
 raw_cirugia %>% 
-  select(ATENCION, `TIPO IDENTIFICACION`, CEDULA,  EDAD, GENERO, `CODIGO \r\nHABILITACION`, DESCRIPCION, 
+  select(ATENCION, `TIPO IDENTIFICACION`, CEDULA,  EDAD, GENERO, `CODIGO \nHABILITACION`, DESCRIPCION, 
          MES, FECHA, `Hora Cirugía`, `FECHA ORDEN`, `CIE 10 DIAGNOSTICO PREQUIRUGICO`, `DESCRIPCION PREQUIRURGICO`,
          `COD DIAGNOSTICO POSTQUIRURGICO`, `DIAGNOSTICO POSTQUIRURGICO`, `CODIGO EPS`,`EPS VALIDADA`,`COD ERP`, 
          38:50, ESPECIALIDAD, CIRUJANO, ANESTESIOLOGO, INSTRUMENTADOR, `TIPO DE HERIDA`, ASA, `TIPO DE ANESTESIA`:QUIROFANO,
-         COMPLICACIONES, `COMPLICACIONES DESCRIPCION`, `DIA DE LA SEMANA...95`, `TIEMPO QUIRÚRGICO`) %>%
-  filter(is.na(`Hora Cirugía`))
-  
-  
-  
-  # mutate(test = str_detect(FECHA, "(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})")) 
-
+         COMPLICACIONES, `COMPLICACIONES DESCRIPCION`, `DIA DE LA SEMANA_1`, `TIEMPO QUIRÚRGICO`)
 ```
 
 En el mes de octubre la columna hora de cirugía se guardó con un formato diferente a las demás fechas. Se debe limpiar correctamente.
