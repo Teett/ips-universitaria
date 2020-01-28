@@ -1,0 +1,90 @@
+---
+title: "clase_3_diplomado"
+author: "Luis Daniel Chavarría"
+date: "24/1/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Clase 3 - Diplomado en analítica
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(naniar)
+```
+
+# Data reading & parsing
+
+```{r}
+raw_diplomate <- read_delim("../../database/clean_diplomate.csv",
+                            delim = ";",
+                            col_types = cols(atencion = col_character(),
+                                             id = col_character(),
+                                             edad = col_number(),
+                                             genero = col_factor(),
+                                             cronico = col_factor(),
+                                             segcronico = col_factor(),
+                                             eps = col_factor(),
+                                             urg = col_factor(),
+                                             tipurg = col_factor(),
+                                             inter = col_factor(),
+                                             ordurg = col_factor(),
+                                             cirugia = col_factor(),
+                                             proc = col_factor(),
+                                             pisodes = col_factor(),
+                                             esp = col_factor()
+                                             ))
+
+glimpse(raw_diplomate)
+```
+
+# Further cleaning
+
+It's not advised to run the cleaning process everytime, the NA replacing will take a long time to compute as there are over 3 million data points.
+
+```{r}
+diplomate <- raw_diplomate %>%
+  mutate(fechaing = as.POSIXct(fechaing, format = "%d/%m/%Y %H:%M:%S %p"), #The numbers are 43101,02954 (Hours)
+         horaing = str_extract_all(horaing, pattern = "\\d\\d:\\d\\d:\\d\\d", simplify = TRUE),
+         horaing = hms(horaing, quiet = TRUE),
+         anoing = as.character(anoing),
+         anoing = parse_date(anoing, format = "%Y")
+         ) %>% 
+  replace_with_na_all(condition = ~.x %in% common_na_strings)
+
+# write_excel_csv2(diplomate, "diplomate_ok_na.csv")
+# write_rds(diplomate, "diplomate_ok_na.rds")
+glimpse(diplomate)
+```
+
+# Cleaning after NA processing
+
+The file has been saved in a rds format, so that it differentiates correctly from the other data and loads the cleaned up formats. 
+
+```{r}
+dipl_naok <- read_rds("database/diplomate_ok_na.rds")
+
+dipl_naok %>% mutate(
+    atencion = as.character(atencion),
+    id = as.character(id),
+    edad = as.numeric(edad),
+    genero = as_factor(genero),
+    cronico = as_factor(cronico),
+    segcronico = as_factor(segcronico),
+    eps = as_factor(eps),
+    urg = as_factor(urg),
+    tipurg = as_factor(tipurg),
+    inter = as_factor(inter),
+    ordurg = as_factor(ordurg),
+    cirugia = as_factor(cirugia),
+    proc = as_factor(proc),
+    pisodes = as_factor(pisodes),
+    esp = as_factor(esp))
+```
+

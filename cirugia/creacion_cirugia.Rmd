@@ -37,11 +37,12 @@ Se ha omitido la lectura directa desde Excel con el objetivo de disminuir errore
 ```{r}
 raw_cirugia <- read_delim("../database/cirugias_realizadas_2019.csv", 
     delim = ";", 
-    col_types = cols(`Hora Cirugía` = col_time(format = "%H:%M"),
+    col_types = cols(FECHA = col_datetime(format = "%D/%m/%Y %H:%M:%S"),
+                     `Hora Cirugía` = col_time(format = "%H:%M"),
                      CEDULA = col_character(),
                      "Tipo procedimiento" = col_factor(),
                      `Horas\nOrden - Cx` = col_time(format = ("%H:%M:%S %p")),
-                     `CODIGO \r\nHABILITACION` = col_double(),
+                     `CODIGO \r\nHABILITACION` = col_double(), #Códigos #N/A corresponden a Cx plástica - 213
                      COMPLICACIONES = col_character(),
                      `FECHA RECUPERACION CX` = col_character(), # Formato 2019-01-24 15:20:54 y 1/10/2019 8:51
                      `FECHA\nAUDITAORDEN` = col_character(), # Formato 2019-01-24 15:20:54 y 1/10/2019 8:51
@@ -50,7 +51,7 @@ raw_cirugia <- read_delim("../database/cirugias_realizadas_2019.csv",
                      ), 
     locale = locale(date_names = "es", encoding = "ISO-8859-1")
     )
-
+problems(raw_cirugia) %>% write_csv2("problems.csv")
 glimpse(raw_cirugia)
 
 ```
@@ -65,9 +66,14 @@ which(colnames(raw_cirugia) == "Hora Cirugía")
 raw_cirugia %>% 
   select(ATENCION, `TIPO IDENTIFICACION`, CEDULA,  EDAD, GENERO, `CODIGO \nHABILITACION`, DESCRIPCION, 
          MES, FECHA, `Hora Cirugía`, `FECHA ORDEN`, `CIE 10 DIAGNOSTICO PREQUIRUGICO`, `DESCRIPCION PREQUIRURGICO`,
-         `COD DIAGNOSTICO POSTQUIRURGICO`, `DIAGNOSTICO POSTQUIRURGICO`, `CODIGO EPS`,`EPS VALIDADA`,`COD ERP`, 
-         38:50, ESPECIALIDAD, CIRUJANO, ANESTESIOLOGO, INSTRUMENTADOR, `TIPO DE HERIDA`, ASA, `TIPO DE ANESTESIA`:QUIROFANO,
-         COMPLICACIONES, `COMPLICACIONES DESCRIPCION`, `DIA DE LA SEMANA_1`, `TIEMPO QUIRÚRGICO`)
+         `COD DIAGNOSTICO POSTQUIRURGICO`, `DIAGNOSTICO POSTQUIRURGICO`, `CODIGO EPS`,`EPS VALIDADA`,`COD ERP`, 38:50, 
+         ESPECIALIDAD, CIRUJANO, ANESTESIOLOGO, INSTRUMENTADOR, `TIPO DE HERIDA`, ASA, `TIPO DE ANESTESIA`:QUIROFANO,
+         COMPLICACIONES, `COMPLICACIONES DESCRIPCION`, `DIA DE LA SEMANA_1`, `TIEMPO QUIRÚRGICO`) %>% 
+  mutate(FECHA = parse_date_time(FECHA, orders = "dmy"),
+         `FECHA ORDEN` = dmy(`FECHA ORDEN`))
+
+
+  
 ```
 
-En el mes de octubre la columna hora de cirugía se guardó con un formato diferente a las demás fechas. Se debe limpiar correctamente.
+En el mes de octubre la columna hora de cirugía se guardó con un formato diferente a las demás fechas. Se debe limpiar correctamente. Una persona se encargará de realizar la limpieza manual de los errores encontrados utilizando R dado que este análisis no será reproducible dado a variabilidad en la fuente.

@@ -17,10 +17,9 @@ The purpose of this script is to prepare the data from the data analytics diplom
 
 ```{r}
 library(plyr)
-library(tidyverse)
 library(readxl)
 library(plotly)
-
+library(tidyverse)
 
 raw_data <- read_excel("../../database/Datos.xlsx")
 
@@ -60,6 +59,7 @@ clean_diplomate <- raw_data %>%
          ) %>% 
   filter(edad < 110)
 
+
 levels(clean_diplomate$cronico) <- c("No", NA, "Sí")
 clean_diplomate$segcronico <- revalue(clean_diplomate$segcronico, c("SD" = NA))
 clean_diplomate$tipurg <- revalue(clean_diplomate$tipurg, 
@@ -72,9 +72,10 @@ clean_diplomate$pisodes <- revalue(clean_diplomate$pisodes, c("N/A"="No aplica")
 
 clean_diplomate %>% 
   summary()
+
 glimpse(clean_diplomate)
 
-# clean_diplomate %>% 
+# clean_diplomate %>%
 #   write_excel_csv2("../../database/clean_diplomate.csv")
 ```
 
