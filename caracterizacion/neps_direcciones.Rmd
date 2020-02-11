@@ -1,0 +1,42 @@
+---
+title: "Caracterización - general"
+author: "Luis Daniel Chavarría"
+date: "10/2/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Caracterización general
+
+```{r}
+library(tidyverse)
+library(ggmap) #Mapa
+library(gridExtra) #Mapa
+```
+
+```{r}
+raw_neps <- read_csv2("../database/neps_direcciones.csv")
+
+
+test <- raw_neps %>% 
+  select(Direccion) %>% 
+  mutate(Direccion = str_replace_all(Direccion, c("CALLE|CLL|CL|CALE|CLLE"), "Cl.")) %>%
+  mutate(Direccion = str_replace_all(Direccion, c("Cl.E"), "Cl.")) %>% 
+  mutate(Direccion = str_replace_all(Direccion, c("CARRERA|CRR|CRA|CR|KRA|KR"), "Cra")) %>% 
+  mutate(Direccion = str_replace_all(Direccion, " ", "+")) %>% 
+  mutate(Direccion = str_replace_all(Direccion, "#", "%23"))
+	
+dir_coord <- geocode(location = test$Direccion[1:5])
+
+
+
+geocode("CALLE 25 #79A-131 BELEN LAS MERCEDES")
+geocode("Cra+43A+%23+60+Sur+-+64,+Sabaneta,+Antioquia")
+
+```
+

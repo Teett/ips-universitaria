@@ -1,0 +1,25 @@
+---
+title: "Unión direcciones"
+author: "Luis Daniel Chavarría"
+date: "31/1/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+```{r}
+direcciones <- read_excel("database/direcciones.xlsx")
+neps <- read_excel("database/neps_junio_2019.xlsx", sheet = "Consolidado")
+```
+
+```{r}
+neps %>% 
+  left_join(direcciones) %>% 
+  write_excel_csv2("neps_direcciones.csv")
+```
+

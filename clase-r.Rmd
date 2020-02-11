@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Clase 3 - Diplomado en analítica
 
 ```{r}
+library(plyr)
+library(readxl)
 library(tidyverse)
 library(lubridate)
 library(naniar)
@@ -22,7 +24,7 @@ library(naniar)
 # Data reading & parsing
 
 ```{r}
-raw_diplomate <- read_delim("../../database/clean_diplomate.csv",
+raw_diplomate <- read_delim("database/clean_diplomate.csv",
                             delim = ";",
                             col_types = cols(atencion = col_character(),
                                              id = col_character(),
@@ -39,7 +41,8 @@ raw_diplomate <- read_delim("../../database/clean_diplomate.csv",
                                              proc = col_factor(),
                                              pisodes = col_factor(),
                                              esp = col_factor()
-                                             ))
+                                             )) %>%
+  filter(!(estotal == "SD" | estotal == "N/A"))
 
 glimpse(raw_diplomate)
 ```
@@ -54,9 +57,15 @@ diplomate <- raw_diplomate %>%
          horaing = str_extract_all(horaing, pattern = "\\d\\d:\\d\\d:\\d\\d", simplify = TRUE),
          horaing = hms(horaing, quiet = TRUE),
          anoing = as.character(anoing),
-         anoing = parse_date(anoing, format = "%Y")
-         ) %>% 
-  replace_with_na_all(condition = ~.x %in% common_na_strings)
+         anoing = parse_date(anoing, format = "%Y"),
+         estb1 = as.numeric(estb1),
+         estb3 = as.numeric(estb3),
+         estotal = as.numeric(estotal),
+         estuce = as.numeric(estuce),
+         estuci = as.numeric(estuci)
+         )
+   
+  # replace_with_na_all(condition = ~.x %in% common_na_strings)
 
 # write_excel_csv2(diplomate, "diplomate_ok_na.csv")
 # write_rds(diplomate, "diplomate_ok_na.rds")
@@ -68,23 +77,101 @@ glimpse(diplomate)
 The file has been saved in a rds format, so that it differentiates correctly from the other data and loads the cleaned up formats. 
 
 ```{r}
-dipl_naok <- read_rds("database/diplomate_ok_na.rds")
-
-dipl_naok %>% mutate(
-    atencion = as.character(atencion),
-    id = as.character(id),
-    edad = as.numeric(edad),
-    genero = as_factor(genero),
-    cronico = as_factor(cronico),
-    segcronico = as_factor(segcronico),
-    eps = as_factor(eps),
-    urg = as_factor(urg),
-    tipurg = as_factor(tipurg),
-    inter = as_factor(inter),
-    ordurg = as_factor(ordurg),
-    cirugia = as_factor(cirugia),
-    proc = as_factor(proc),
-    pisodes = as_factor(pisodes),
-    esp = as_factor(esp))
+# dipl_naok <- read_rds("database/diplomate_ok_na.rds")
+# 
+# diplomado_naok <- dipl_naok %>% mutate(
+#     atencion = as.character(atencion),
+#     id = as.character(id),
+#     edad = as.numeric(edad),
+#     genero = as_factor(genero),
+#     cronico = as_factor(cronico),
+#     segcronico = as_factor(segcronico),
+#     eps = as_factor(eps),
+#     espinter = as_factor(espinter),
+#     urg = as_factor(urg),
+#     tipurg = as_factor(tipurg),
+#     inter = as_factor(inter),
+#     ordurg = as_factor(ordurg),
+#     cirugia = as_factor(cirugia),
+#     proc = as_factor(proc),
+#     pisodes = as_factor(pisodes),
+#     esp = as_factor(esp),
+#     estb1 = as.numeric(estb1),
+#     estb3 = as.numeric(estb3))
+# 
+# glimpse(diplomado_naok)
 ```
 
+# Tarea
+
+```{r}
+summary(diplomate)
+```
+
+# Clase de asociación
+
+```{r}
+library(tables)
+
+tabular(segcronico ~ edad * (mean + median + min + max + sd) + (n = 1), data = diplomate)
+tabular(genero ~ estb1 * (mean + median + min + max + sd) + (n = 1), data = diplomate)
+
+```
+
+# Tablas de 1 y 2 dimensiones
+
+```{r}
+por_dias <- xtabs(~diaseming, data = diplomate)
+por_genero <- xtabs(~diaseming + genero, data = diplomate)
+```
+ 
+# Tablas con proporción
+
+margin = 1 indica que se calculen los porcentajes dentro de la misma fila. margin = NULL indica porcentaje del total, margin = 2. 
+
+```{r}
+prop.table(por_dias, margin = NULL)
+prop.table(por_genero, margin = 1)
+prop.table(por_genero, margin = 2)
+```
+
+¿Importa el día de ingreso del paciente en el análisis de las estancias y las edades?
+
+¡No importa!
+
+```{r}
+diplomate %>% 
+  ggplot(aes(x = edad, y = estotal, color = diaseming)) +
+  geom_point(alpha = 0.8) +
+  scale_y_log10() +
+  facet_wrap(~diaseming)
+```
+
+Correlaciones y gráficos de dispersión.
+
+```{r}
+diplomate %>%
+  select_if(is.numeric) %>% 
+  GGally::ggpairs(mapping = aes(alpha = 0.6))
+```
+
+Gráfico de correlación
+
+```{r}
+library(reshape2)
+Num <- diplomate %>%
+  select_if(is.numeric)
+
+cor <- melt(cor(Num))
+
+## Acomoda la diagonal (correlación 1) de arriba hacia abajo
+cor$Var2 <- with(cor, factor(Var2, sort(levels(Var1), T), 
+               sort(levels(Var1), T)))
+
+ggplot(cor, aes(Var1, Var2, fill=value)) + geom_tile() +
+  geom_text(aes(label=round(value,2)), size=3)+
+  scale_fill_gradient2(mid='white', high='blue', low='red', limits=c(-1,1), name='Correlación') +
+  geom_text(aes(label=round(value,2)), size=3) + xlab('') + ylab('') + theme(axis.text.x = element_text(angle = 90))
+```
+
+Se

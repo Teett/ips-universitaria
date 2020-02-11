@@ -1,0 +1,99 @@
+---
+title: "Severidad"
+author: "Luis Daniel Chavarría"
+date: "29/1/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Regresión multinomial - predicción del descontrol
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(glmnet)
+library(rsample)
+library(yardstick)
+library(broom)
+```
+
+# Lectura de datos
+
+```{r}
+raw_neps <- read_excel("../database/neps_junio_2019.xlsx", sheet = "Consolidado")
+```
+
+# Exploración y limpieza
+
+```{r}
+glimpse(raw_neps)
+
+neps <- raw_neps %>% 
+  select(-`TIPO DOC`, -NOMBRES, -`GRUPO ETARIO`, -`GRUPO DE EDAD`, -`FECHA INICIO AL PGP`, -REGIONAL_IPS, -ZONAL_IPS) %>% 
+  mutate(NRODOC = as.character(NRODOC),
+         SEXO = as_factor(SEXO),
+         `TIPO AMBITO` = as_factor(`TIPO AMBITO`),
+         Cronicidad_2 = as_factor(Cronicidad_2),
+         Segmento = as_factor(Segmento),
+         Descontrol = as_factor(Descontrol),
+         `Eventos Causa Alto Descontrol` = as_factor(`Eventos Causa Alto Descontrol`),
+         `Uso de recursos` = as_factor(`Uso de recursos`),
+         Severidad = as_factor(Severidad),
+         Estado = as_factor(Estado)
+         )
+
+neps_no_na <- neps[complete.cases(neps),] %>% 
+  initial_split()
+
+train_data <- training(neps_no_na)
+test_data <- testing(neps_no_na)
+
+numeros <- train_data %>%
+  select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -VIH) %>% 
+  select_if(is.numeric) %>% 
+  names()
+
+X_train <- train_data %>%
+  select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -Estado) %>%
+  mutate_at(vars(numeros), ~scale(.)) %>% 
+  fastDummies::dummy_cols(remove_selected_columns = TRUE) %>%
+  as.matrix()
+
+
+
+X_test <- test_data %>%
+  select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -Estado) %>%
+  mutate_at(vars(numeros), ~scale(.)) %>% 
+  fastDummies::dummy_cols(remove_selected_columns = TRUE) %>%
+  as.matrix()
+
+y_train <- train_data$Severidad
+y_test <- test_data$Severidad
+```
+
+```{r}
+multi_sev <- cv.glmnet(X_train, y_train,
+  family = "multinomial",
+  keep = TRUE
+)
+plot(multi_sev)
+plot(multi_sev$glmnet.fit)
+
+coefs <- coef(multi_sev, s = "lambda.1se")
+
+response <- predict(multi_sev, newx = X_test, s = "lambda.min", type = "class") %>% 
+  as_factor()
+
+levels(response) <- c("Baja", "Media", "Severa")
+levels(response)
+levels(y_test)
+
+tibble(y_test, response) %>% 
+  conf_mat(truth = y_test, estimate = response)
+```
+
