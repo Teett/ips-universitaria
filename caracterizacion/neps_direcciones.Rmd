@@ -17,7 +17,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggmap) #Mapa
 library(gridExtra) #Mapa
+library(readxl)
+library(broom)
+library(fastDummies)
 ```
+
+# Geocoding
 
 ```{r}
 raw_neps <- read_csv2("../database/neps_direcciones.csv")
@@ -40,3 +45,81 @@ geocode("Cra+43A+%23+60+Sur+-+64,+Sabaneta,+Antioquia")
 
 ```
 
+# Data structure
+
+```{r}
+glimpse(raw_neps)
+
+neps <- raw_neps %>% 
+  select(-`TIPO DOC`, -NOMBRES, -`GRUPO ETARIO`, -`GRUPO DE EDAD`, -`FECHA INICIO AL PGP`, -REGIONAL_IPS, -ZONAL_IPS) %>% 
+  mutate(NRODOC = as.character(NRODOC),
+         SEXO = as_factor(SEXO),
+         `TIPO AMBITO` = as_factor(`TIPO AMBITO`),
+         Cronicidad_2 = as_factor(Cronicidad_2),
+         Segmento = as_factor(Segmento),
+         Descontrol = as_factor(Descontrol),
+         `Eventos Causa Alto Descontrol` = as_factor(`Eventos Causa Alto Descontrol`),
+         `Uso de recursos` = as_factor(`Uso de recursos`),
+         Severidad = as_factor(Severidad),
+         Estado = as_factor(Estado)
+         )
+
+neps_no_na <- neps[complete.cases(neps),]
+
+numeros <- neps_no_na %>%
+  select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -VIH, -Direccion, -Municipio, -Barrio) %>% 
+  select_if(is.numeric) %>% 
+  names()
+
+neps_norm <- neps_no_na %>%
+  select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -Estado, -Direccion, -Municipio, -Barrio) %>%
+  mutate_at(vars(numeros), ~scale(.)) %>% 
+  fastDummies::dummy_cols(remove_selected_columns = TRUE)
+
+neps_matrix <- neps_norm %>% as.matrix()
+```
+
+# K-means algorithm
+
+```{r}
+wss <- function(k) {
+  kmeans(neps_matrix, k, nstart = 10)$tot.withinss
+}
+
+# for k = 1 to k = 15
+k.values <- 1:15
+
+# extract wss for 2-15 clusters
+wss_values <- map_dbl(k.values, wss)
+
+tibble(k.values, wss_values) %>%
+  ggplot(aes(k.values, wss_values)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Elbow plot - IPS Universitaria's patients",
+       subtitle = "Picking optimal k to reduce inter-cluster variation",
+       x = "Tried values for k",
+       y = "Total withinness sum of squares")
+```
+
+It seems like 12 clusters will be a good number in this case
+
+```{r}
+model_kmeans <- kmeans(neps_matrix, centers = 12, nstart = 10)
+
+# Means of the model
+broom::tidy(model_kmeans)
+
+# Results
+kmeans_result <- neps_no_na %>% 
+  mutate(cluster = as_factor(model_kmeans$cluster))
+
+kmeans_result
+
+kmeans_result[c(numeros, "cluster")] %>% 
+  GGally::ggpairs(mapping = aes(color = kmeans_result$cluster),
+                  columns = 1:26,
+                  legend = 1)
+
+ggsave("cor_pacientes.png", width = 40, height = 40)
+```
