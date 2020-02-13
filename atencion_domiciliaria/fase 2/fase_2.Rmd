@@ -1,0 +1,83 @@
+---
+title: "DBSCAN Domi Fase 2"
+author: "Daniel"
+date: "13/2/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Fase 2 - Atención domiciliaria
+
+```{r}
+library(tidyverse) #Transformación
+library(fpc) #Para el BDSCAN
+library(factoextra) #Gráficas de BDSCAN
+library(ggmap) #Mapa
+library(gridExtra) #Mapa
+```
+
+# Data reading
+
+Read multiple files as a list
+
+```{r}
+temp <- list.files(pattern="*.csv")
+files <- map(temp, ~read_delim(., delim = ";", locale = locale(decimal_mark = ","))) %>% 
+  set_names( c("Zona 1", "Zona 2", "Zona 3", "Zona 4", "Zona 5", "Zona 6"))
+```
+
+# Selección de variables
+
+Tomar únicamente las variables con coordenadas para entregárselas a la función `fpc::dbscan`
+
+```{r}
+zonas_dbscan <- files %>% 
+  map(~tibble(latitud_y = .x$latitud_y,
+               longitud_x = .x$longitud_x))
+```
+
+# DBSCAN
+
+Utilizamos pmap ya que es una función con 3 argumentos y se escalará para n zonas.
+
+```{r}
+
+arguments <- list(data = zonas_dbscan,
+                  eps = list(0.009, 0.01, 0.009, 0.009, 0.012, 0.011),
+                  MinPts = list(7, 7, 7, 7, 7, 7))
+
+dbscan_results <- pmap(arguments, fpc::dbscan)
+
+
+```
+
+# Asignar clusters a datos originales
+
+```{r}
+dbscan_results
+set_names(dbscan_results, c("Zona 1", "Zona 2", "Zona 3", "Zona 4", "Zona 5", "Zona 6"))
+
+clustering <- files %>% 
+  map_df(~tibble(latitud_y = .x$latitud_y, 
+                 longitud_x = .x$longitud_x, 
+                 cedula = .x$id,
+                 zona = .x$zona)) %>%
+  bind_cols(
+    cluster = as_factor(dbscan_results %>% map( ~.x$cluster) %>% unlist())
+    )
+```
+
+# Gráficas de dispersión
+
+```{r}
+clustering %>% 
+  ggplot(aes(x = longitud_x, y = latitud_y, color = cluster)) +
+  geom_point() +
+  facet_wrap(~zona, scales = "free")
+```
+
