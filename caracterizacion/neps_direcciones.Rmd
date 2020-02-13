@@ -22,12 +22,15 @@ library(broom)
 library(fastDummies)
 ```
 
-# Geocoding
+# Data reading
 
 ```{r}
 raw_neps <- read_csv2("../database/neps_direcciones.csv")
+```
 
+# Geocoding
 
+```{r}
 test <- raw_neps %>% 
   select(Direccion) %>% 
   mutate(Direccion = str_replace_all(Direccion, c("CALLE|CLL|CL|CALE|CLLE"), "Cl.")) %>%
@@ -62,7 +65,8 @@ neps <- raw_neps %>%
          `Uso de recursos` = as_factor(`Uso de recursos`),
          Severidad = as_factor(Severidad),
          Estado = as_factor(Estado)
-         )
+         ) %>% 
+  mutate_at(.vars = vars(HTA:`Trastorno mental`), as_factor)
 
 neps_no_na <- neps[complete.cases(neps),]
 
@@ -71,19 +75,19 @@ numeros <- neps_no_na %>%
   select_if(is.numeric) %>% 
   names()
 
+factors <- c("SEXO", "TIPO AMBITO", "Cronicidad_2", "Segmento", "Zona")
+
 neps_norm <- neps_no_na %>%
   select(-NRODOC, -Severidad, -Descontrol, -`Uso de recursos`, -`Eventos Causa Alto Descontrol`, -Estado, -Direccion, -Municipio, -Barrio) %>%
-  mutate_at(vars(numeros), ~scale(.)) %>% 
-  fastDummies::dummy_cols(remove_selected_columns = TRUE)
-
-neps_matrix <- neps_norm %>% as.matrix()
+  mutate_at(vars(numeros), ~scale(.)) %>%
+  fastDummies::dummy_cols(remove_selected_columns = TRUE, select_columns = factors)
 ```
 
 # K-means algorithm
 
 ```{r}
 wss <- function(k) {
-  kmeans(neps_matrix, k, nstart = 10)$tot.withinss
+  kmeans(neps_norm, k, nstart = 10)$tot.withinss
 }
 
 # for k = 1 to k = 15
@@ -102,10 +106,10 @@ tibble(k.values, wss_values) %>%
        y = "Total withinness sum of squares")
 ```
 
-It seems like 12 clusters will be a good number in this case
+It seems like 9 clusters will be a good number in this case
 
 ```{r}
-model_kmeans <- kmeans(neps_matrix, centers = 12, nstart = 10)
+model_kmeans <- kmeans(neps_norm, centers = 9, nstart = 10)
 
 # Means of the model
 broom::tidy(model_kmeans)
@@ -117,9 +121,20 @@ kmeans_result <- neps_no_na %>%
 kmeans_result
 
 kmeans_result[c(numeros, "cluster")] %>% 
-  GGally::ggpairs(mapping = aes(color = kmeans_result$cluster),
-                  columns = 1:26,
+  GGally::ggpairs(mapping = aes(color = cluster),
+                  columns = 1:13,
                   legend = 1)
 
-ggsave("cor_pacientes.png", width = 40, height = 40)
+ggsave("cor_pacientes_v2.png", width = 30, height = 30)
 ```
+
+
+```{r}
+summaries <- kmeans_result %>% 
+  group_by(cluster) %>% 
+  do(resumen = summary(.))
+
+summaries$resumen
+```
+
+The descriptive information in this grouping needs to be validated and visualized in a better way. Let's cut kmeans for now.
