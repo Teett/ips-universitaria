@@ -1,0 +1,123 @@
+---
+title: "Clase 9"
+author: "Luis Daniel Chavarría"
+date: "14/2/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Clase 9
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(plotly)
+```
+
+# Lectura de datos
+
+```{r}
+diplomado <- read_csv2("database/clean_diplomate.csv") %>% 
+  filter(!(estotal == "SD" | estotal == "N/A")) %>% 
+  mutate(estb1 = as.numeric(estb1),
+         estb3 = as.numeric(estb3),
+         estotal = as.numeric(estotal),
+         estuce = as.numeric(estuce),
+         estuci = as.numeric(estuci),
+         atencion = as.character(atencion),
+         id = as.character(id),
+         edad = as.numeric(edad),
+         genero = as_factor(genero),
+         cronico = as_factor(cronico),
+         segcronico = as_factor(segcronico),
+         eps = as_factor(eps),
+         espinter = as_factor(espinter),
+         urg = as_factor(urg),
+         tipurg = as_factor(tipurg),
+         inter = as_factor(inter),
+         ordurg = as_factor(ordurg),
+         cirugia = as_factor(cirugia),
+         proc = as_factor(proc),
+         pisodes = as_factor(pisodes),
+         esp = as_factor(esp),
+         anoing = as_date(anoing),
+         mesing = as.character(mesing),
+         diaing = as.character(diaing)
+         )
+```
+
+# Actividad 1
+
+```{r}
+diplomado %>%
+  filter(!is.na(cronico), 
+         cronico == "Sí", 
+         pisodes %in% c("Piso 2", "Piso 3", "Piso 4", "Piso 5", "Piso 6", "Piso 7")) %>% 
+ggplot(aes(x= estb3 ,y= edad)) + #capa N° 2
+geom_bin2d() + # capa N° 3
+labs(title = "Relación entre estancias en el bloque 3 y la estancia total",
+     subtitle = "Únicamente para pacientes crónicos",
+     x = "Estancia bloque 3", 
+     y = "Estancia total") +
+  facet_wrap(~pisodes) +
+  geom_smooth(method = "lm")
+```
+
+La estancia en el bloque 3 no parece tener potencial explicativo directo con la estancia total, excepto tal vez cuando la estancia ocurre en el bloque 3, piso 2.
+
+# Actividad 3
+
+```{r}
+glimpse(diplomado)
+
+p <- diplomado %>%
+  mutate(espinter = fct_lump(espinter, n = 10, w = estotal)) %>%
+  ggplot(aes(x = fct_reorder(espinter, estotal), y = estotal, fill = genero)) +
+  geom_boxplot() +
+  facet_wrap(~genero) +
+  coord_flip() +
+  labs(title = "Top 10 de especialidades de internación de acuerdo a la estancia total",
+       x = "",
+       y = "Estancia total") 
+
+ggplotly(p)
+```
+
+# Actividad 5
+
+```{r}
+library(ggQC)
+
+diplomado %>% 
+  count(eps, sort = T) %>%
+  head(n = 15) %>%
+  mutate(acum = cumsum(n),
+         per_acum = acum / sum(n)) %>% 
+  ggplot(aes(x = eps, y = n, color = acum)) +
+  stat_pareto() +
+  geom_hline(yintercept = 33273) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+g <- diplomado %>% 
+  filter(cronico == "Sí", tipurg != "No aplica") %>%
+  mutate(espinter = fct_lump(espinter, n = 11, w = estotal)) %>% 
+  ggplot(aes(x = estotal, y = tipurg, color = genero, label = dxurg,
+             label2 = nombre, label3 = segcronico)) +
+  geom_jitter(height =  0.1, width = 0.05, alpha = 0.6) +
+  facet_wrap(~espinter, nrow = 3) +
+  scale_x_log10() +
+  labs(title = "Pacientes crónicos - Esp de internación por tipo de urgencia, género y estancia total",
+       x = "Estancia total",
+       y = "Tipo de urgencia")
+
+ggplotly(g)
+```
+
+
