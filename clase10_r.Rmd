@@ -1,0 +1,68 @@
+---
+title: "Clase 10 - Diplomado en analítica"
+author: "Luis Daniel Chavarría"
+date: "21/2/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lectura de datos
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(plotly)
+```
+
+# Lectura de datos
+
+```{r}
+diplomado <- read_csv2("database/clean_diplomate.csv") %>% 
+  filter(!(estotal == "SD" | estotal == "N/A")) %>% 
+  mutate(estb1 = as.numeric(estb1),
+         estb3 = as.numeric(estb3),
+         estotal = as.numeric(estotal),
+         estuce = as.numeric(estuce),
+         estuci = as.numeric(estuci),
+         atencion = as.character(atencion),
+         id = as.character(id),
+         edad = as.numeric(edad),
+         genero = as_factor(genero),
+         cronico = as_factor(cronico),
+         segcronico = as_factor(segcronico),
+         eps = as_factor(eps),
+         espinter = as_factor(espinter),
+         urg = as_factor(urg),
+         tipurg = as_factor(tipurg),
+         inter = as_factor(inter),
+         ordurg = as_factor(ordurg),
+         cirugia = as_factor(cirugia),
+         proc = as_factor(proc),
+         pisodes = as_factor(pisodes),
+         esp = as_factor(esp),
+         anoing = as_date(anoing),
+         mesing = as.character(mesing),
+         diaing = as.character(diaing)
+         )
+```
+
+
+# Clase 10 - Diplomado en analítica
+
+Asociar factores a la forma de los puntos. Habrán tantas formas como niveles del factor.
+
+## Forma manual
+
+```{r}
+ggplot(diplomado, aes(x = esturg, y = estuci, color = genero, shape = genero)) +
+  geom_jitter() +
+  scale_shape_manual(values = c(24, 25)) +
+  scale_color_manual(values = c("red", "blue"))
+```
+
