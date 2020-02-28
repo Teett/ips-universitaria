@@ -82,18 +82,6 @@ Cleaned dates for `fecha_nacimiento` are now stored correctly in `correct_nacimi
 
 # fecha_atenc
 
-Which dates are in a different format in fecha_atenc ?
-
-```{r}
-raw_data %>% 
-  count(fecha_atenc, sort = T) %>% distinct(fecha_atenc, .keep_all = T) %>%
-  mutate(str_size = stringr::str_length(fecha_atenc)) %>% 
-  filter(str_size > 5) %>% 
-  inner_join(raw_data %>%
-               distinct(fecha_atenc, .keep_all = T) %>% 
-               dplyr::select(Atencion, fecha_atenc))
-```
-
 ```{r}
 correct_attention <- raw_data2 %>%
   mutate(mes_atencion = case_when(mes_atencion == "1/01/febrero000" ~ "octubre",
@@ -131,7 +119,7 @@ writexl::write_xlsx(diplomado_clean, "database/datos_diplomado_limpios.xlsx")
 Para facilitarle el trabajo a la docente, se le recomienda que utilice el siguiente esquema para la lectura de la nueva base de datos:
 
 ```{r}
-prueba <- readxl::read_excel("database/datos_diplomado_limpios.xlsx", 
+datos <- readxl::read_excel("datos_diplomado_limpios.xlsx", 
                                 col_types = c("text", "text", "date", "numeric", "text", "text", 
                                 "text", "date", "numeric", "text", "numeric", "text", "text", "text", 
                                 "text", "text", "text", "text", "text", 
