@@ -1,0 +1,144 @@
+---
+title: "Data cleaning new diplomate"
+author: "Daniel"
+date: "27/2/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries
+
+```{r}
+library(tidyverse)
+library(naniar)
+library(readxl)
+library(lubridate)
+library(writexl)
+```
+
+# Data reading
+
+raw_data2 includes correct parsing from Excel with dates read from 1899-12-30 but generates NA for the data in different format, whereas raw_data coerces everything to character and keeps the information intact.
+
+```{r}
+raw_data <- readxl::read_excel("database/Datos_diplomado R.xlsx", 
+                                col_types = c("text", "text", "text", 
+                                "text", "numeric", "text", "text", 
+                                "text", "text", "numeric", "text", 
+                                "numeric", "text", "text", "text", 
+                                "text", "text", "text", "text", "text", 
+                                "text", "text", "numeric", "numeric", 
+                                "numeric", "numeric", "numeric", 
+                                "numeric", "text", "text", "text", 
+                                "text", "text", "text", "text", "numeric", 
+                                "numeric", "numeric", "text", "numeric"))
+
+raw_data2 <- readxl::read_excel("database/Datos_diplomado R.xlsx", 
+                                col_types = c("text", "text", "text", 
+                                "date", "numeric", "text", "text", 
+                                "text", "date", "numeric", "text", 
+                                "numeric", "text", "text", "text", 
+                                "text", "text", "text", "text", "text", 
+                                "text", "text", "numeric", "numeric", 
+                                "numeric", "numeric", "numeric", 
+                                "numeric", "text", "text", "text", 
+                                "text", "text", "text", "numeric", "numeric", 
+                                "numeric", "numeric", "numeric", "numeric"))
+```
+
+# fecha_nacimiento
+
+Which dates are in a different format in fecha_nacimiento?
+
+```{r}
+raw_data %>% 
+  count(fecha_nacimiento, sort = T) %>% distinct(fecha_nacimiento, .keep_all = T) %>%
+  mutate(str_size = stringr::str_length(fecha_nacimiento)) %>% 
+  filter(str_size > 5) %>% 
+  inner_join(raw_data %>%
+               distinct(fecha_nacimiento, .keep_all = T) %>% 
+               dplyr::select(Atencion, fecha_nacimiento))
+```
+
+So, we have dd/mm/aaaa and dd Feb aaaa, let's fix that. `dmy()` can handle both "20 feb 1997" and "25/4/1972"
+
+Why is the representation of 27/06/1930 26894, because Excel has origin at 1899-12-30 and counts days from that date.
+
+```{r}
+dmy("20 feb 1997") #For proof
+dmy("25/4/1972") #For proof
+daymonthyear <- dmy(raw_data$fecha_nacimiento)
+
+correct_nacimiento <- raw_data2
+correct_nacimiento$fecha_nacimiento[is.na(raw_data2$fecha_nacimiento)] <- daymonthyear[is.na(raw_data2$fecha_nacimiento)]
+```
+
+Cleaned dates for `fecha_nacimiento` are now stored correctly in `correct_nacimiento`
+
+# fecha_atenc
+
+Which dates are in a different format in fecha_atenc ?
+
+```{r}
+raw_data %>% 
+  count(fecha_atenc, sort = T) %>% distinct(fecha_atenc, .keep_all = T) %>%
+  mutate(str_size = stringr::str_length(fecha_atenc)) %>% 
+  filter(str_size > 5) %>% 
+  inner_join(raw_data %>%
+               distinct(fecha_atenc, .keep_all = T) %>% 
+               dplyr::select(Atencion, fecha_atenc))
+```
+
+```{r}
+correct_attention <- raw_data2 %>%
+  mutate(mes_atencion = case_when(mes_atencion == "1/01/febrero000" ~ "octubre",
+                                  mes_atencion == "1/01/febrero00febrero" ~ "octubre",
+                                  TRUE ~ mes_atencion)) %>%
+  mutate(fecha_atenc = case_when(is.na(fecha_atenc) ~ ymd(paste(ano_atencion, mes_atencion, dia_atencion)),
+                                 TRUE ~ as_date(as.character(fecha_atenc))))
+  
+```
+
+Las 57 atenciones marcadas como NA ocurren porque según la información, dice que ocurrió el 29 de enero de 2018, y esa fecha no existe dado que no fue un año bisiesto y no existe tal combinación. Se analizan los datos y se identifica que los 1/01/febrero000 corresponden a octubre.
+
+# Otras correciones
+
+- Se añaden ambas fechas correctamente
+- Se elimina la columna identificación
+- Se reemplazan "NA" string a "no aplica"
+
+```{r}
+diplomado_clean <- correct_attention %>%
+  mutate(fecha_nacimiento = correct_nacimiento$fecha_nacimiento) %>% 
+  select(-identificacion) %>%
+  mutate(fecha_nacimiento = as_date(fecha_nacimiento)) %>% 
+  mutate_if(.predicate = is.character, .funs = funs(str_replace(., "NA", "no aplica")))
+```
+
+# Escritura
+
+```{r}
+writexl::write_xlsx(diplomado_clean, "database/datos_diplomado_limpios.xlsx")
+```
+
+# Lectura propuesta de los nuevos datos
+
+Para facilitarle el trabajo a la docente, se le recomienda que utilice el siguiente esquema para la lectura de la nueva base de datos:
+
+```{r}
+prueba <- readxl::read_excel("database/datos_diplomado_limpios.xlsx", 
+                                col_types = c("text", "text", "date", "numeric", "text", "text", 
+                                "text", "date", "numeric", "text", "numeric", "text", "text", "text", 
+                                "text", "text", "text", "text", "text", 
+                                "text", "text", "numeric", "numeric", 
+                                "numeric", "numeric", "numeric", 
+                                "numeric", "text", "text", "text", 
+                                "text", "text", "text", "numeric", "numeric", 
+                                "numeric", "numeric", "numeric", "numeric"))
+```
+
