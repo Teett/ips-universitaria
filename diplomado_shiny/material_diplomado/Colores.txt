@@ -1,0 +1,34 @@
+Skins ------------------------
+
+"blue"
+"black"
+"purple"
+"green"
+"red"
+"yellow"
+
+Status ----------------------
+
+Azul -> "primary"
+Verde -> "success"
+Cyan -> "info"
+Naranja -> "warning"
+Rojo -> "danger"
+
+Colors -----------------------
+
+"red"
+"yellow"
+"aqua"
+"blue"
+"light-blue"
+"green"
+"navy"
+"teal"
+"olive"
+"lime"
+"orange"
+"fuchsia"
+"purple"
+"maroon"
+"black"

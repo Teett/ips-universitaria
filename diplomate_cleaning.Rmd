@@ -47,7 +47,7 @@ raw_data2 <- readxl::read_excel("database/Datos_diplomado R.xlsx",
                                 "text", "text", "numeric", "numeric", 
                                 "numeric", "numeric", "numeric", 
                                 "numeric", "text", "text", "text", 
-                                "text", "text", "text", "numeric", "numeric", 
+                                "text", "numeric", "text", "numeric", "numeric", 
                                 "numeric", "numeric", "numeric", "numeric"))
 ```
 
@@ -104,8 +104,9 @@ Las 57 atenciones marcadas como NA ocurren porque según la información, dice q
 diplomado_clean <- correct_attention %>%
   mutate(fecha_nacimiento = correct_nacimiento$fecha_nacimiento) %>% 
   select(-identificacion) %>%
-  mutate(fecha_nacimiento = as_date(fecha_nacimiento)) %>% 
-  mutate_if(.predicate = is.character, .funs = funs(str_replace(., "NA", "no aplica")))
+  mutate(fecha_nacimiento = as_date(fecha_nacimiento)) %>%
+  mutate_if(.predicate = is.character, .funs = funs(str_replace(., "NA", "no aplica"))) %>% 
+  mutate(nombres = str_replace(nombres, "no aplica", "NA"))
 ```
 
 # Escritura
@@ -113,20 +114,3 @@ diplomado_clean <- correct_attention %>%
 ```{r}
 writexl::write_xlsx(diplomado_clean, "database/datos_diplomado_limpios.xlsx")
 ```
-
-# Lectura propuesta de los nuevos datos
-
-Para facilitarle el trabajo a la docente, se le recomienda que utilice el siguiente esquema para la lectura de la nueva base de datos:
-
-```{r}
-datos <- readxl::read_excel("datos_diplomado_limpios.xlsx", 
-                                col_types = c("text", "text", "date", "numeric", "text", "text", 
-                                "text", "date", "numeric", "text", "numeric", "text", "text", "text", 
-                                "text", "text", "text", "text", "text", 
-                                "text", "text", "numeric", "numeric", 
-                                "numeric", "numeric", "numeric", 
-                                "numeric", "text", "text", "text", 
-                                "text", "text", "text", "numeric", "numeric", 
-                                "numeric", "numeric", "numeric", "numeric"))
-```
-
