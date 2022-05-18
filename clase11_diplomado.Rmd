@@ -1,0 +1,97 @@
+---
+title: "clase_11_diplomado"
+author: "Luis Daniel Chavarría"
+date: "6/3/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Librerías
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(plotly)
+library(broom)
+```
+
+# Lectura de datos
+
+```{r}
+diplomado <- read_csv2("database/clean_diplomate.csv") %>% 
+  filter(!(estotal == "SD" | estotal == "N/A")) %>% 
+  mutate(estb1 = as.numeric(estb1),
+         estb3 = as.numeric(estb3),
+         estotal = as.numeric(estotal),
+         estuce = as.numeric(estuce),
+         estuci = as.numeric(estuci),
+         atencion = as.character(atencion),
+         id = as.character(id),
+         edad = as.numeric(edad),
+         genero = as_factor(genero),
+         cronico = as_factor(cronico),
+         segcronico = as_factor(segcronico),
+         eps = as_factor(eps),
+         espinter = as_factor(espinter),
+         urg = as_factor(urg),
+         tipurg = as_factor(tipurg),
+         inter = as_factor(inter),
+         ordurg = as_factor(ordurg),
+         cirugia = as_factor(cirugia),
+         proc = as_factor(proc),
+         pisodes = as_factor(pisodes),
+         esp = as_factor(esp),
+         anoing = as_date(anoing),
+         mesing = as.character(mesing),
+         diaing = as.character(diaing)
+         )
+```
+
+# Ajuste de regresión lineal
+
+```{r}
+glimpse(diplomado)
+
+age_fit <- lm(estotal ~ edad, data = diplomado)
+
+tidy(age_fit)
+glance(age_fit)
+```
+
+# Predicción
+
+```{r}
+datos_nuevos <- tibble(edad = c(23, 35))
+predict(age_fit, newdata = datos_nuevos)
+```
+
+# Reto
+
+```{r}
+cronicos_piso2 <- diplomado %>% 
+  filter(cronico == "Sí", pisodes == "Piso 2", genero == "Masculino")
+
+modelo_cronicos <- lm(estotal ~ estb3, data = cronicos_piso2)
+
+modelo_cronicos %>% 
+  tidy()
+
+modelo_cronicos %>% 
+  glance()
+
+ggplot(cronicos_piso2, aes(x = estb3, y = estotal)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+cor(cronicos_piso2$estotal, modelo_cronicos$fitted.values)
+```
+
+```{r}
+summary(lm(estotal ~ estb1*estb3*cronico, data = diplomado))
+```
+
